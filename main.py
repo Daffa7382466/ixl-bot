@@ -4,80 +4,41 @@ from playwright.async_api import async_playwright
 
 async def main():
     async with async_playwright() as p:
-        # 1. BUKA BROWSER
+        # 1. KONFIGURASI BROWSER
         browser = await p.chromium.launch(
             headless=True,
             args=[
-                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-                "--no-sandbox"
+                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "--no-sandbox",
+                "--disable-dev-shm-usage"
             ],
             timeout=60000  # Timeout 60 detik
         )
         page = await browser.new_page()
         
         try:
-            # 2. LOGIN IXL
+            # 2. PROSES LOGIN
             print("🔐 Membuka halaman login...")
-            await page.goto("https://www.ixl.com/signin/", timeout=60000)
+            await page.goto("https://www.ixl.com/signin/", wait_until="networkidle", timeout=60000)
             
-            # Isi username & password (pakai environment variables)
-            username = os.getenv("IXL_USERNAME", "daffafalahaldika126")  # Default fallback
-            password = os.getenv("IXL_PASSWORD", "ixlnovember17")         # Default fallback
+            # Screenshot debug
+            await page.screenshot(path="1_login_page.png")
+            
+            # Isi form login
+            username = os.getenv("IXL_USERNAME", "daffafalahaldika126")  # Default jika env tidak ada
+            password = os.getenv("IXL_PASSWORD", "ixlnovember17")
             
             await page.fill('input[name="username"], input#username', username)
             await page.fill('input[name="password"], input#password', password)
             
-            # Submit form (coba 3 cara)
+            # Coba 3 cara submit
             try:
-                await page.click('button[type="submit"]', timeout=5000)
+                await page.click('button:has-text("Sign in"), button[type="submit"]', timeout=5000)
             except:
                 try:
-                    await page.click('text="Sign in"', timeout=5000)
+                    await page.keyboard.press("Enter")
                 except:
-                    await page.press('input[name="password"]', 'Enter')
+                    await page.click('text="Sign in"')
             
             print("✅ Login berhasil!")
-            await page.wait_for_url("**/dashboard**", timeout=10000)  # Tunggu sampai redirect
-
-            # 3. BUKA HALAMAN SOAL
-            print("📚 Menuju ke soal matematika...")
-            await page.goto(
-                "https://www.ixl.com/math/grade-5/addition",
-                wait_until="networkidle",  # Tunggu sampai jaringan idle
-                timeout=15000
-            )
-            
-            # 4. AMBIL SOAL
-            try:
-                # Tunggu sampai soal muncul
-                await page.wait_for_selector(
-                    '.math-problem, .question, [data-testid="math-problem"]',
-                    state="visible",
-                    timeout=20000  # Timeout 20 detik
-                )
-                
-                # Ambil teks soal
-                soal = await page.evaluate('''() => {
-                    const elem = document.querySelector('.math-problem') || 
-                                document.querySelector('.question-text');
-                    return elem?.innerText.trim() || "Soal tidak ditemukan";
-                }''')
-                
-                print(f"📝 SOAL: {soal}")
-                await page.screenshot(path="hasil_soal.png")  # Simpan bukti screenshot
-                
-            except Exception as e:
-                await page.screenshot(path="error_soal.png")
-                print(f"❌ GAGAL: {str(e)}")
-                print("ℹ️ Cek 'error_soal.png' untuk debug")
-
-        except Exception as e:
-            await page.screenshot(path="error_utama.png")
-            print(f"💥 ERROR KRITIS: {str(e)}")
-            raise
-
-        finally:
-            await browser.close()
-
-if __name__ == "__main__":
-    asyncio.run(main())
+            await page.screenshot(path="2
