@@ -1,11 +1,6 @@
-FROM mcr.microsoft.com/playwright/python:v1.53.0-jammy # <-- UPDATE VERSI
-
+FROM mcr.microsoft.com/playwright/python:v1.53.0-jammy
 WORKDIR /app
-
 COPY requirements.txt .
-
-RUN pip install -r requirements.txt
-
+RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
-
 CMD ["python", "main.py"]
