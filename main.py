@@ -41,4 +41,75 @@ async def main():
                     await page.click('text="Sign in"')
             
             print("✅ Login berhasil!")
-            await page.screenshot(path="2
+            await page.screenshot(path="2_after_login.png")
+
+            # 3. AKSES HALAMAN SOAL
+            print("📚 Mengarahkan ke soal matematika...")
+            try:
+                await page.goto(
+                    "https://www.ixl.com/math/grade-5/addition",
+                    wait_until="domcontentloaded",
+                    timeout=15000
+                )
+            except:
+                # Fallback jika URL langsung gagal
+                await page.goto("https://www.ixl.com/math/grade-5")
+                await page.click('text="Addition"')
+            
+            await page.screenshot(path="3_math_page.png")
+
+            # 4. PROSES AMBIL SOAL
+            print("🔍 Mencari soal...")
+            try:
+                # Coba klik tombol start jika ada
+                await page.click('text="Start practicing"', timeout=5000, delay=1000)
+                print("🟢 Tombol 'Start practicing' diklik")
+            except:
+                print("ℹ️ Tidak menemukan tombol start")
+
+            # Tunggu dan cari soal
+            try:
+                await page.wait_for_timeout(3000)  # Tunggu rendering
+                
+                # Evaluasi semua kemungkinan selector
+                soal = await page.evaluate('''() => {
+                    const selectors = [
+                        '.math-problem',
+                        '.question-text',
+                        '.ProblemView-problem',
+                        '[data-testid="math-problem"]',
+                        '.skill-tree-problem'
+                    ];
+                    
+                    for (const selector of selectors) {
+                        const elem = document.querySelector(selector);
+                        if (elem && elem.innerText.trim() !== "") {
+                            return elem.innerText.trim();
+                        }
+                    }
+                    return null;
+                }''')
+
+                if soal:
+                    print(f"📝 SOAL DITEMUKAN:\n{soal}")
+                    await page.screenshot(path="4_question.png")
+                else:
+                    raise Exception("Tidak menemukan elemen soal")
+                    
+            except Exception as e:
+                await page.screenshot(path="error_final.png")
+                print(f"❌ GAGAL: {str(e)}")
+                
+                # Debug tambahan
+                html = await page.evaluate('''() => {
+                    return document.documentElement.outerHTML;
+                }''')
+                print("ℹ️ Struktur HTML (500 karakter pertama):", html[:500])
+                
+        finally:
+            await browser.close()
+            print("🛑 Browser ditutup")
+
+if __name__ == "__main__":
+    print("🚀 Memulai bot IXL...")
+    asyncio.run(main())
